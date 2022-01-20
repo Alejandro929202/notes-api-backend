@@ -1,0 +1,7 @@
+PUT http://localhost:3001/api/notes/61e93bf5b13a5d59b7a11ec4
+Content-Type: application/json
+
+{
+    "content": "actualizacion con put instantaneo2",
+    "important": true
+}
