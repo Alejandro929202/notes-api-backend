@@ -1,3 +1,5 @@
+//dependecia npm install dotenv para que utilice el archivo .env
+require('dotenv').config()
 //importar la conexion del fichero mongo.js
 require('./mongo') 
 const Note = require('./models/Note')
@@ -8,6 +10,8 @@ const express = require('express')
 const cors = require('cors')
 const app = express()
 const logger = require('./loggerMiddleware')
+const notFound = require('./middleware/notFound')
+const handleErrors = require('./middleware/handleErrors')
 
 
 //const http = require('http')
@@ -22,12 +26,7 @@ app.use(cors())
 app.use(logger)
 
 
-let notes = [{
-    id: 1,
-    content: 'Repasar los retos de JS de middudev',
-    date: '2019-05-30T19:20:14.298Z',
-    important: true
-}]
+// let notes = []
 
 //creamos un servidor y le pasamos un parametro que es un callBack(funcion que se ejecuta cada vez que le llega una request) 
 /*const app = http.createServer((request, response) => {
@@ -41,30 +40,53 @@ app.get('/', (request, response) =>{
 })
 
 app.get('/api/notes', (request, response) => {
-    response.json(notes)
+    Note.find({}).then(notes => {
+        response.json(notes)
+    })
+    
 })
 
-app.get('/api/notes/:id', (request, response) => {
-    const id = Number(request.params.id)
-    const note = notes.find(note => note.id === id)
+app.get('/api/notes/:id', (request, response, next) => {
+    const { id } = request.params
+    
+    Note.findById(id).then(note => {
+        //si no encuentra notas devuelve un error 404
+        if(note) {
+            response.json(note)
+        } else {
+            response.status(404).end()
+        }
+    }).catch(err => {
+        next(err)
+    })
+})
 
-    //si no encuentra notas devuelve un error 404
-    if(note) {
-        response.json(note)
-    } else {
-        response.status(404).end()
+app.put('/api/notes/:id', (request, response, next) => {
+    const { id } = request.params
+    const note = request.body
+
+    const newNoteInfo = {
+        content: note.content,
+        important: note.important
     }
+    
+    Note.findByIdAndUpdate(id, newNoteInfo, {new: true})
+    .then(result => {
+        response.json(result)
+    })
+    .catch(err => next(err))
+    
 })
 
-
-
-app.delete('/api/notes/:id', (request, response) => {
-    const id = Number(request.params.id)
-    const notes = notes.filter(note => note.id !== id)
-    response.status(204).end()
+app.delete('/api/notes/:id', (request, response, next) => {
+    const { id } = request.params
+    
+    Note.findByIdAndDelete(id).then(() => {
+        response.status(204).end()
+    }).catch(error => next(error))
 })
 
-app.post('/api/notes', (request, response) => {
+app.post('/api/notes', (request, response, next) => {
     const note = request.body
     
     if(!note || !note.content){
@@ -73,36 +95,38 @@ app.post('/api/notes', (request, response) => {
         })
     }
 
-    const ids = notes.map(note => note.id)
-    const maxId = Math.max(...ids)
-
-
-    const newNote = {
-        id: maxId + 1,
+    const newNote  = new Note({
         content: note.content,
-        important: typeof note.important !== 'undefined' ? note.important : false,
-        date: new Date().toISOString()
-    }
+        date: new Date(),
+        important: note.important || false
+        
+    })
 
-    notes = notes.concat(newNote)
+    newNote.save().then(savedNote => {
+        response.json(savedNote)
+    }).catch(err => next(err))
 
     response.status(201).json(newNote)
 })
 
-app.post('/api/notes/:id', (request, response) => {
-    const id = Number(request.params.id)
-    notes = notes.filter(note => note.id != id)
-    response.status(204).end()
-})
+//middleware control de errores next
+app.use(notFound)
+app.use(handleErrors)
 
-app.use((request, response) => {
-    response.status(404).json({
-        error: 'Not found'
-    })
-})
+// app.post('/api/notes/:id', (request, response) => {
+//     const id = Number(request.params.id)
+//     notes = notes.filter(note => note.id != id)
+//     response.status(204).end()
+// })
+
+// app.use((request, response) => {
+//     response.status(404).json({
+//         error: 'Not found'
+//     })
+// })
 
 
-const PORT = process.env.PORT || 3001
+const PORT = process.env.PORT 
 
 app.listen(PORT, () =>{
     console.log('Server running on port ${PORT}')
