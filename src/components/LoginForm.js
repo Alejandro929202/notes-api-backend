@@ -37,6 +37,4 @@ LoginForm.propTypes = {
   username: PropTypes.string,
 
 }
-© 2022 GitHub, Inc.
-Terms
-Privacy
+

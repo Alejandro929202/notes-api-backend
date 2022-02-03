@@ -24,6 +24,8 @@ const App = () => {
       })
   }, [])
 
+
+  //efecto para leer el localStorage
   useEffect(() => {
     const loggedUserJSON = window.localStorage.getItem('loggedNoteAppUser')
     if (loggedUserJSON) {
@@ -75,10 +77,12 @@ const App = () => {
         password
       })
   
+      //guardamos un string con la información del usuario
       window.localStorage.setItem(
         'loggedNoteAppUser', JSON.stringify(user)
       )
-
+      
+      //Guardando token en el servicio 
       noteService.setToken(user.token)
 
       setUser(user)
